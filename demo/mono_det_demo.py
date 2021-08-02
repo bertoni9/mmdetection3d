@@ -54,15 +54,15 @@ def main():
         # read from file because img in data_dict has undergone pipeline transform
         img = mmcv.imread(img_filename)
 
-        show_bboxes = preprocess(data, result, score_thr=args.score_thr)
+        boxes_3d, boxes_2d, categories = preprocess(data, result, score_thr=args.score_thr)
         if args.generate:
-            generate_txt(show_bboxes)
+            generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
         # show the results
         if args.predict:
             show_multi_modality_result(
                 img,
                 None,
-                show_bboxes,
+                boxes_3d,
                 data['img_metas'][0][0]['cam_intrinsic'],
                 args.out_dir,
                 file_name,

@@ -1,50 +1,44 @@
+import os.path as osp
+import copy
 
 import numpy as np
 import torch
 
 from mmdet3d.core.bbox.structures.cam_box3d import CameraInstance3DBoxes
+from mmdet3d.core.bbox import mono_cam_box2vis, points_cam2img
 
-# class_names = [
-#     'car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle',
-#     'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
+class_names = [
+    'car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle',
+    'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
+
+cat_map = dict(zip(range(len(class_names)), class_names))
 
 
-def generate_txt(show_boxes):
-    return None
-    # with open(path_txt, "w+") as ff:
-    #     for idx, uv_box in enumerate(uv_boxes):
-    #
-    #         xx = float(xyz[idx][0]) - tt[0]
-    #         yy = float(xyz[idx][1]) - tt[1]
-    #         zz = float(xyz[idx][2]) - tt[2]
-    #
-    #         if net == 'geometric':
-    #             zz = zzs_geom[idx]
-    #
-    #         cam_0 = [xx, yy, zz]
-    #         bi = float(bis[idx])
-    #         epi = float(epis[idx])
-    #         if net in ('monstereo', 'monoloco_pp'):
-    #             alpha, ry = float(yaws[0][idx]), float(yaws[1][idx])
-    #             hwl = [float(hs[idx]), float(ws[idx]), float(ls[idx])]
-    #             # scale to obtain (approximately) same recall at evaluation
-    #             conf_scale = 0.035 if net == 'monoloco_pp' else 0.033
-    #         else:
-    #             alpha, ry, hwl = -10., -10., [0, 0, 0]
-    #             conf_scale = 0.05
-    #         conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy ** 2 + zz ** 2))
-    #
-    #         output_list = [alpha] + uv_box[:-1] + hwl + cam_0 + [ry, conf, bi, epi]
-    #         category = cat[idx]
-    #         if category < 0.1:
-    #             ff.write("%s " % 'Pedestrian')
-    #         else:
-    #             ff.write("%s " % 'Cyclist')
-    #
-    #         ff.write("%i %i " % (-1, -1))
-    #         for el in output_list:
-    #             ff.write("%f " % el)
-    #         ff.write("\n")
+def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
+    
+    path_txt = osp.join(out_dir, osp.splitext(osp.basename(filename))[0] + '.txt')
+    with open(path_txt, "w+") as ff:
+        if not boxes_3d:
+            return
+        locs = boxes_3d.gravity_center
+        dims = boxes_3d.dims
+        alphas = boxes_3d.yaw
+        yaws = alphas + torch.atan2(locs[:, 0], locs[:, 2])
+        for idx, box in enumerate(boxes_2d):
+            loc = locs[idx].tolist()
+            dim = dims[idx].tolist()
+            alpha = float(alphas[idx])
+            yaw = float(yaws[idx])
+            conf = float(box[-1])
+            box = box[:-1].tolist()
+            cat = cat_map[categories[idx]]
+            output_list = [alpha] + box + dim + loc + [yaw, conf]
+            ff.write("%s " % cat)
+            ff.write("%i %i " % (-1, -1))
+            for el in output_list:
+                ff.write("%f " % el)
+            ff.write("\n")
+    print(f"Saved file {path_txt}")
 
 
 def preprocess(data, result, score_thr=0.0):
@@ -72,20 +66,17 @@ def preprocess(data, result, score_thr=0.0):
         raise NotImplementedError(
             'camera intrinsic matrix is not provided')
 
-    from mmdet3d.core.bbox import mono_cam_box2vis
     show_bboxes = CameraInstance3DBoxes(
         pred_bboxes, box_dim=pred_bboxes.shape[-1], origin=(0.5, 1.0, 0.5))
     show_bboxes = mono_cam_box2vis(show_bboxes)
 
     # NMS based on the frontal face
-    if show_bboxes:
-        show_bboxes, _ = filter_boxes(show_bboxes,  pred_scores, data['img_metas'][0][0]['cam_intrinsic'])
-    return show_bboxes
-
+    boxes_3d, boxes_2d, indices = filter_boxes(show_bboxes, pred_scores, data['img_metas'][0][0]['cam_intrinsic'])
+    return boxes_3d, boxes_2d, categories[indices]
 
 def filter_boxes(bboxes3d, scores, cam_intrinsic):
-    import copy
-    from mmdet3d.core.bbox import points_cam2img
+    if not bboxes3d:
+        return [], [], []
     cam_intrinsic = copy.deepcopy(cam_intrinsic)
     corners_3d = bboxes3d.corners
     num_bbox = corners_3d.shape[0]
@@ -103,7 +94,7 @@ def filter_boxes(bboxes3d, scores, cam_intrinsic):
          for idx, pt in enumerate(imgfov_pts_2d)]
     )
     indices = nms(boxes, thresh=0.5)
-    return bboxes3d[indices], indices
+    return bboxes3d[indices], boxes[indices], indices
 
 
 def nms(dets, thresh):
