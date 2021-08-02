@@ -9,7 +9,7 @@ from mmdet3d.apis import (inference_mono_3d_detector, init_model,
 def main():
     parser = ArgumentParser()
     parser.add_argument('images', nargs='*', help='input images')
-    parser.add_argument('--ann', help='ann file', default='demo/data/wayve/test.json')
+    parser.add_argument('--ann', help='ann file', default='demo/data/wv/test.json')
     parser.add_argument('--config', help='Config file',
                         default='configs/fcos3d/fcos3d_r101_caffe_fpn_gn-head_dcn_2x8_1x_nus-mono3d_finetune.py')
     parser.add_argument('--checkpoint', help='Checkpoint file',
