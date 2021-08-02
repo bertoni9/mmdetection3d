@@ -185,7 +185,7 @@ def mono_cam_box2vis(cam_box):
     # ----------------------------------------------------------------------------------------------------------------
     # convert yaw by (-yaw - np.pi / 2)
     # ----------------------------------------------------------------------------------------------------------------
-    
+
     # this is because mono 3D box class such as `NuScenesBox` has different
     # definition of rotation with our `CameraInstance3DBoxes`
     # yaw = -yaw - np.pi / 2
