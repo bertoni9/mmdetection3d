@@ -212,15 +212,19 @@ def inference_mono_3d_detector(model, image, ann_file):
     test_pipeline = deepcopy(cfg.data.test.pipeline)
     test_pipeline = Compose(test_pipeline)
     box_type_3d, box_mode_3d = get_box_type(cfg.data.test.box_type_3d)
+
     # get data info containing calib
-    data_infos = mmcv.load(ann_file)
+    # data_infos = mmcv.load(ann_file)
+    img_info = mmcv.load(ann_file)
     # print(data_infos)
+
     # find the info corresponding to this image
-    for x in data_infos['images']:
-        if osp.basename(x['file_name']) != osp.basename(image):
-            continue
-        img_info = x
-        break
+    # for x in data_infos['images']:
+    #     if osp.basename(x['file_name']) != osp.basename(image):
+    #         continue
+    #     img_info = x
+    #     break
+
     data = dict(
         img_prefix=osp.dirname(image),
         img_info=dict(filename=osp.basename(image)),
@@ -395,8 +399,8 @@ def show_proj_det_result_meshlab(data,
     # filter out low score bboxes for visualization
 
     if score_thr > 0:
-        # inds = pred_scores > score_thr
-        inds = np.logical_and(pred_scores > score_thr, categories == 0)
+        inds = pred_scores > score_thr
+        # inds = np.logical_and(pred_scores > score_thr, categories == 0)
         pred_bboxes = pred_bboxes[inds]
         pred_scores = pred_scores[inds]
         categories = categories[inds]
@@ -443,8 +447,8 @@ def show_proj_det_result_meshlab(data,
         show_bboxes = mono_cam_box2vis(show_bboxes)
 
         # NMS based on the frontal face
-        show_bboxes, indices = filter_boxes(show_bboxes,  pred_scores, data['img_metas'][0][0]['cam_intrinsic'])
-        print(categories[indices])
+        if show_bboxes:
+            show_bboxes, indices = filter_boxes(show_bboxes,  pred_scores, data['img_metas'][0][0]['cam_intrinsic'])
 
         show_multi_modality_result(
             img,

@@ -1,4 +1,6 @@
 from argparse import ArgumentParser
+import glob
+from os import path as osp
 
 from mmdet3d.apis import (inference_mono_3d_detector, init_model,
                           show_result_meshlab)
@@ -27,16 +29,19 @@ def main():
     # build the model from a config file and a checkpoint file
     model = init_model(args.config, args.checkpoint, device=args.device)
     # test a single image
-    result, data = inference_mono_3d_detector(model, args.image, args.ann)
-    # show the results
-    show_result_meshlab(
-        data,
-        result,
-        args.out_dir,
-        args.score_thr,
-        show=args.show,
-        snapshot=args.snapshot,
-        task='mono-det')
+
+    for image in glob.glob(osp.join('/home/lorenzo/images/runs/short_short', '*.jpeg')):
+        print(f'Running inference on image {image}')
+        result, data = inference_mono_3d_detector(model, image, args.ann)
+        # show the results
+        show_result_meshlab(
+            data,
+            result,
+            args.out_dir,
+            args.score_thr,
+            show=args.show,
+            snapshot=args.snapshot,
+            task='mono-det')
 
 
 if __name__ == '__main__':
