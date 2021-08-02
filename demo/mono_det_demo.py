@@ -5,7 +5,7 @@ from os import path as osp
 import mmcv
 from mmdet3d.apis import (inference_mono_3d_detector, init_model)
 from mmdet3d.core import show_multi_modality_result
-from preprocess import preprocess
+from process import preprocess, generate_txt
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
         args.images += glob.glob(args.glob)
     if not args.images:
         raise Exception("no image files given")
-    assert args.generate or args.predict
+    assert args.generate or args.predict, "expected either inference or generation of txt files"
     # build the model from a config file and a checkpoint file
     model = init_model(args.config, args.checkpoint, device=args.device)
     # test a single image
@@ -56,7 +56,7 @@ def main():
 
         show_bboxes = preprocess(data, result, score_thr=args.score_thr)
         if args.generate:
-            aa = 5
+            generate_txt(show_bboxes)
         # show the results
         if args.predict:
             show_multi_modality_result(

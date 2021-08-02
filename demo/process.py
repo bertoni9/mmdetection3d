@@ -9,6 +9,44 @@ from mmdet3d.core.bbox.structures.cam_box3d import CameraInstance3DBoxes
 #     'motorcycle', 'pedestrian', 'traffic_cone', 'barrier']
 
 
+def generate_txt(show_boxes):
+    return None
+    # with open(path_txt, "w+") as ff:
+    #     for idx, uv_box in enumerate(uv_boxes):
+    #
+    #         xx = float(xyz[idx][0]) - tt[0]
+    #         yy = float(xyz[idx][1]) - tt[1]
+    #         zz = float(xyz[idx][2]) - tt[2]
+    #
+    #         if net == 'geometric':
+    #             zz = zzs_geom[idx]
+    #
+    #         cam_0 = [xx, yy, zz]
+    #         bi = float(bis[idx])
+    #         epi = float(epis[idx])
+    #         if net in ('monstereo', 'monoloco_pp'):
+    #             alpha, ry = float(yaws[0][idx]), float(yaws[1][idx])
+    #             hwl = [float(hs[idx]), float(ws[idx]), float(ls[idx])]
+    #             # scale to obtain (approximately) same recall at evaluation
+    #             conf_scale = 0.035 if net == 'monoloco_pp' else 0.033
+    #         else:
+    #             alpha, ry, hwl = -10., -10., [0, 0, 0]
+    #             conf_scale = 0.05
+    #         conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy ** 2 + zz ** 2))
+    #
+    #         output_list = [alpha] + uv_box[:-1] + hwl + cam_0 + [ry, conf, bi, epi]
+    #         category = cat[idx]
+    #         if category < 0.1:
+    #             ff.write("%s " % 'Pedestrian')
+    #         else:
+    #             ff.write("%s " % 'Cyclist')
+    #
+    #         ff.write("%i %i " % (-1, -1))
+    #         for el in output_list:
+    #             ff.write("%f " % el)
+    #         ff.write("\n")
+
+
 def preprocess(data, result, score_thr=0.0):
     """
     Preprocess data for evaluation and predictions
