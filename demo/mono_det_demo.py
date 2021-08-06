@@ -5,7 +5,7 @@ from os import path as osp
 import mmcv
 from mmdet3d.apis import (inference_mono_3d_detector, init_model)
 from mmdet3d.core import show_multi_modality_result
-from process import preprocess, generate_txt
+from process import preprocess, generate_txt, intrinsics_shift
 
 
 def main():
@@ -53,8 +53,8 @@ def main():
         file_name = osp.split(img_filename)[-1].split('.')[0]
         # read from file because img in data_dict has undergone pipeline transform
         img = mmcv.imread(img_filename)
-
         boxes_3d, boxes_2d, categories = preprocess(data, result, score_thr=args.score_thr)
+        # centers = intrinsics_shift(boxes_3d)
         if args.generate:
             generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
         # show the results

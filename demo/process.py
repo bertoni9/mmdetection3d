@@ -15,7 +15,7 @@ cat_map = dict(zip(range(len(class_names)), class_names))
 
 
 def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
-    
+
     path_txt = osp.join(out_dir, osp.splitext(osp.basename(filename))[0] + '.txt')
     with open(path_txt, "w+") as ff:
         if not boxes_3d:
@@ -73,6 +73,7 @@ def preprocess(data, result, score_thr=0.0):
     # NMS based on the frontal face
     boxes_3d, boxes_2d, indices = filter_boxes(show_bboxes, pred_scores, data['img_metas'][0][0]['cam_intrinsic'])
     return boxes_3d, boxes_2d, categories[indices]
+
 
 def filter_boxes(bboxes3d, scores, cam_intrinsic):
     if not bboxes3d:
@@ -133,3 +134,9 @@ def nms(dets, thresh):
         order = order[inds + 1]
 
     return keep
+
+
+def intrinsics_shift(bboxes3d):
+    centers = copy.deepcopy(bboxes3d.gravity_center)
+    centers[:, 0] *= 0.92
+    return centers
