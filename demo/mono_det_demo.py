@@ -5,7 +5,7 @@ from os import path as osp
 import mmcv
 from mmdet3d.apis import (inference_mono_3d_detector, init_model)
 from mmdet3d.core import show_multi_modality_result
-from process import preprocess, generate_txt, intrinsics_shift
+from process import preprocess, generate_txt, save_json
 
 
 def main():
@@ -20,6 +20,8 @@ def main():
         '--predict', action='store_true', help='run predictions')
     parser.add_argument(
         '--generate', action='store_true', help='create txt file in KITTI format')
+    parser.add_argument(
+        '--save', action='store_true', help='save json files')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument('--glob', help='glob expression for input images (for many images)')
@@ -39,7 +41,7 @@ def main():
         args.images += glob.glob(args.glob)
     if not args.images:
         raise Exception("no image files given")
-    assert args.generate or args.predict, "expected either inference or generation of txt files"
+    assert args.generate or args.predict or args.save, "expected either inference or generation of txt/json files"
     # build the model from a config file and a checkpoint file
     model = init_model(args.config, args.checkpoint, device=args.device)
     # test a single image
@@ -54,10 +56,13 @@ def main():
         # read from file because img in data_dict has undergone pipeline transform
         img = mmcv.imread(img_filename)
         boxes_3d, boxes_2d, categories = preprocess(data, result, score_thr=args.score_thr)
-        # centers = intrinsics_shift(boxes_3d)
+
         if args.generate:
             generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
         # show the results
+        if args.save:
+            output_path = osp.join(args.out_dir, file_name + '.json')
+            save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], output_path)
         if args.predict:
             show_multi_modality_result(
                 img,

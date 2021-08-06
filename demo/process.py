@@ -1,5 +1,8 @@
+
+import json
 import os.path as osp
 import copy
+from collections import defaultdict
 
 import numpy as np
 import torch
@@ -140,3 +143,19 @@ def intrinsics_shift(bboxes3d):
     centers = copy.deepcopy(bboxes3d.gravity_center)
     centers[:, 0] *= 0.92
     return centers
+
+
+def save_json(boxes_3d, boxes_2d, categories, intrinsics, output_path):
+    dic_out = defaultdict(list)
+    centers = intrinsics_shift(boxes_3d)
+    # dic_out['corners'] = [corner.tolist() for corner in boxes_3d.corners]
+    dic_out['centers'] = [center.tolist() for center in centers]
+    dic_out['dims'] = [dim.tolist() for dim in boxes_3d.dims]
+    dic_out['yaw'] = [yaw.tolist() for yaw in boxes_3d.yaw]
+    dic_out['intrinsics'] = intrinsics
+    dic_out['categories'] = [cat_map[cat] for cat in categories]
+    dic_out['boxes_2d'] = [box.tolist() for box in boxes_2d]
+
+    with open(output_path, 'w') as ff:
+        json.dump(dic_out, ff)
+    print(f'Saved file {output_path}')
