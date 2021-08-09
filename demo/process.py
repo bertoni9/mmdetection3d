@@ -1,4 +1,5 @@
 
+import math
 import json
 import os.path as osp
 import copy
@@ -30,8 +31,8 @@ def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
         for idx, box in enumerate(boxes_2d):
             loc = locs[idx].tolist()
             dim = dims[idx].tolist()
-            alpha = float(alphas[idx])
-            yaw = float(yaws[idx])
+            alpha = normalize_angle((alphas[idx]))  # KITTI Convention
+            yaw = normalize_angle((yaws[idx]))
             conf = float(box[-1])
             box = box[:-1].tolist()
             cat = cat_map[categories[idx]]
@@ -151,11 +152,31 @@ def save_json(boxes_3d, boxes_2d, categories, intrinsics, output_path):
     # dic_out['corners'] = [corner.tolist() for corner in boxes_3d.corners]
     dic_out['centers'] = [center.tolist() for center in centers]
     dic_out['dims'] = [dim.tolist() for dim in boxes_3d.dims]
-    dic_out['yaw'] = [yaw.tolist() for yaw in boxes_3d.yaw]
     dic_out['intrinsics'] = intrinsics
     dic_out['categories'] = [cat_map[cat] for cat in categories]
     dic_out['boxes_2d'] = [box.tolist() for box in boxes_2d]
+    for idx, yaw_t in enumerate(boxes_3d.yaw):
+        yaw_l = yaw_t.tolist()
+        loc_l = dic_out['centers'][idx]
+        yaw_o = []
+        alpha_o = []
+        for i, yaw in enumerate(yaw_l):
+            alpha = normalize_angle(yaw)  # Networks predict allocentric angle alpha
+            yaw = alpha + torch.atan2(loc_l[i][0], loc_l[i][2])
+            yaw_o.append(yaw)
+            yaw_o.append(yaw)
+        dic_out['yaw'].append(yaw_o)
+        dic_out['alpha'].append(alpha_o)
 
     with open(output_path, 'w') as ff:
         json.dump(dic_out, ff)
     print(f'Saved file {output_path}')
+
+
+def normalize_angle(ori):
+    while ori > np.pi:
+        ori -= 2 * np.pi
+    while ori < -np.pi:
+        ori += 2 * np.pi
+    assert -np.pi <= ori <= np.pi
+    return ori
