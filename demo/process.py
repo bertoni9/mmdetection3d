@@ -18,6 +18,29 @@ class_names = [
 cat_map = dict(zip(range(len(class_names)), class_names))
 
 
+def save_json(boxes_3d, boxes_2d, categories, intrinsics, output_path):
+    dic_out = defaultdict(list)
+    centers = intrinsics_shift(boxes_3d)
+    # dic_out['corners'] = [corner.tolist() for corner in boxes_3d.corners]
+    dic_out['centers'] = [center.tolist() for center in centers]  # x, y, z [m]
+    dic_out['dims'] = [[float(dim[1]), float(dim[2]), float(dim[0])] for dim in boxes_3d.dims]  # lhw -> hwl
+    dic_out['intrinsics'] = intrinsics   # 3x3 matrix
+    dic_out['categories'] = [cat_map[cat] for cat in categories]  # 23 categories
+    dic_out['boxes_2d'] = [box.tolist() for box in boxes_2d]  # x1, y1, x2, y2, conf
+    for idx, yaw_t in enumerate(boxes_3d.yaw):
+        loc = dic_out['centers'][idx]
+        alpha = float(yaw_t)
+        yaw = alpha + math.atan2(loc[0], loc[2])
+        alpha = normalize_angle(alpha)  # Networks predict allocentric angle alpha
+        yaw = normalize_angle(yaw)
+        dic_out['alpha'].append(alpha)
+        dic_out['yaw'].append(yaw)
+
+    with open(output_path, 'w') as ff:
+        json.dump(dic_out, ff)
+    print(f'Saved file {output_path}')
+
+
 def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
 
     path_txt = osp.join(out_dir, osp.splitext(osp.basename(filename))[0] + '.txt')
@@ -31,12 +54,13 @@ def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
         for idx, box in enumerate(boxes_2d):
             loc = locs[idx].tolist()
             dim = dims[idx].tolist()
+            hwl = [dim[1], dim[2], dim[0]]
             alpha = normalize_angle((alphas[idx]))  # KITTI Convention
             yaw = normalize_angle((yaws[idx]))
             conf = float(box[-1])
             box = box[:-1].tolist()
             cat = cat_map[categories[idx]]
-            output_list = [alpha] + box + dim + loc + [yaw, conf]
+            output_list = [alpha] + box + hwl + loc + [yaw, conf]
             ff.write("%s " % cat)
             ff.write("%i %i " % (-1, -1))
             for el in output_list:
@@ -144,33 +168,6 @@ def intrinsics_shift(bboxes3d):
     centers = copy.deepcopy(bboxes3d.gravity_center)
     centers[:, 0] *= 0.92
     return centers
-
-
-def save_json(boxes_3d, boxes_2d, categories, intrinsics, output_path):
-    dic_out = defaultdict(list)
-    centers = intrinsics_shift(boxes_3d)
-    # dic_out['corners'] = [corner.tolist() for corner in boxes_3d.corners]
-    dic_out['centers'] = [center.tolist() for center in centers]
-    dic_out['dims'] = [dim.tolist() for dim in boxes_3d.dims]
-    dic_out['intrinsics'] = intrinsics
-    dic_out['categories'] = [cat_map[cat] for cat in categories]
-    dic_out['boxes_2d'] = [box.tolist() for box in boxes_2d]
-    for idx, yaw_t in enumerate(boxes_3d.yaw):
-        yaw_l = yaw_t.tolist()
-        loc_l = dic_out['centers'][idx]
-        yaw_o = []
-        alpha_o = []
-        for i, yaw in enumerate(yaw_l):
-            alpha = normalize_angle(yaw)  # Networks predict allocentric angle alpha
-            yaw = alpha + torch.atan2(loc_l[i][0], loc_l[i][2])
-            yaw_o.append(yaw)
-            yaw_o.append(yaw)
-        dic_out['yaw'].append(yaw_o)
-        dic_out['alpha'].append(alpha_o)
-
-    with open(output_path, 'w') as ff:
-        json.dump(dic_out, ff)
-    print(f'Saved file {output_path}')
 
 
 def normalize_angle(ori):
