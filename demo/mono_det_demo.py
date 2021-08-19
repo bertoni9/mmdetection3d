@@ -6,7 +6,7 @@ from os import path as osp
 import mmcv
 from mmdet3d.apis import (inference_mono_3d_detector, init_model)
 from mmdet3d.core import show_multi_modality_result
-from process import preprocess, generate_txt, save_json
+from process import postprocess, generate_txt, save_json
 
 
 def main():
@@ -56,15 +56,16 @@ def main():
         file_name = osp.split(img_filename)[-1].split('.')[0]
         # read from file because img in data_dict has undergone pipeline transform
         img = mmcv.imread(img_filename)
-        boxes_3d, boxes_2d, categories = preprocess(data, result, score_thr=args.score_thr)
+        boxes_3d, boxes_2d, categories = postprocess(data, result, score_thr=args.score_thr)
 
         if args.generate:
             generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
         # show the results
         if args.save:
+            cf = 1  # corrective factor for intrinsics
             output_path = osp.join(args.out_dir, file_name + '.json')
-            save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], output_path)
-        if args.predict:
+            save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], cf, output_path)
+        if args.predict and boxes_3d:
             show_multi_modality_result(
                 img,
                 None,
