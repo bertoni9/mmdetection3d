@@ -19,28 +19,30 @@ cat_map = dict(zip(range(len(class_names)), class_names))
 
 
 def save_json(boxes_3d, boxes_2d, categories, intrinsics, cf, output_path):
-    dic_out = defaultdict(list)
+    dic_out = {
+        'cuboids': defaultdict(list),
+        'intrinsics': intrinsics
+    }
     centers = intrinsics_shift(boxes_3d, cf)
     if len(centers) > 0:
-        # dic_out['corners'] = [corner.tolist() for corner in boxes_3d.corners]
-        dic_out['xyz'] = [center.tolist() for center in centers]  # x, y, z [m]
-        # dic_out['xyz'] = [center.tolist() for center in boxes_3d.gravity_center]
-        dic_out['hwl'] = [[float(dim[1]), float(dim[2]), float(dim[0])] for dim in boxes_3d.dims]  # lhw -> hwl
-        dic_out['intrinsics'] = intrinsics   # 3x3 matrix
-        dic_out['corrective_factor'] = [cf]
-        dic_out['categories'] = [cat_map[cat] for cat in categories]  # 23 categories
-        dic_out['boxes'] = [box.tolist()[:-1] for box in boxes_2d]  # x1, y1, x2, y2,
-        dic_out['confidence'] = [box.tolist()[-1] for box in boxes_2d]
-        for idx, yaw_t in enumerate(boxes_3d.yaw):
-            loc = dic_out['xyz'][idx]
-            alpha = float(yaw_t)
-            yaw = alpha + math.atan2(loc[0], loc[2])
+        for idx, center in enumerate(centers):
+            cuboid = {}
+            center = center.tolist()
+            cuboid['x'], cuboid['y'], cuboid['z'] = center[0], center[1], center[2]
+            dim = boxes_3d.dims[idx]
+            cuboid['h'], cuboid['w'], cuboid['l'] = float(dim[1]), float(dim[2]), float(dim[0])
+            cuboid['corrective_factor'] = cf
+            cuboid['category'] = cat_map[categories[idx]]  # 23 categories
+            box = boxes_2d[idx].tolist()
+            dic_out['box'] = box[:-1]
+            dic_out['confidence'] = box[-1]
+            alpha = float(boxes_3d.yaw[idx])
+            yaw = alpha + math.atan2(center[0], center[2])
             alpha = normalize_angle(alpha)  # Networks predict allocentric angle alpha
             yaw = normalize_angle(yaw)
-            dic_out['alpha'].append(alpha)
-            dic_out['yaw'].append(yaw)
-    else:
-        dic_out = {}
+            cuboid['alpha'] = alpha
+            cuboid['yaw'] = yaw
+            dic_out['cuboids'].append(cuboid)
     with open(output_path, 'w') as ff:
         json.dump(dic_out, ff)
     print(f'Saved file {output_path}')
