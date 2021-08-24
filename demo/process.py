@@ -20,7 +20,7 @@ cat_map = dict(zip(range(len(class_names)), class_names))
 
 def save_json(boxes_3d, boxes_2d, categories, intrinsics, cf, output_path):
     dic_out = {
-        'cuboids': defaultdict(list),
+        'cuboids': [],
         'intrinsics': intrinsics
     }
     centers = intrinsics_shift(boxes_3d, cf)
@@ -29,19 +29,20 @@ def save_json(boxes_3d, boxes_2d, categories, intrinsics, cf, output_path):
             cuboid = {}
             center = center.tolist()
             cuboid['x'], cuboid['y'], cuboid['z'] = center[0], center[1], center[2]
+            cuboid['distance'] = math.sqrt(cuboid['x'] ** 2 + cuboid['y'] ** 2 + cuboid['z'] ** 2)
             dim = boxes_3d.dims[idx]
             cuboid['h'], cuboid['w'], cuboid['l'] = float(dim[1]), float(dim[2]), float(dim[0])
-            cuboid['corrective_factor'] = cf
             cuboid['category'] = cat_map[categories[idx]]  # 23 categories
             box = boxes_2d[idx].tolist()
-            dic_out['box'] = box[:-1]
-            dic_out['confidence'] = box[-1]
+            cuboid['box'] = box[:-1]
+            cuboid['confidence'] = box[-1]
             alpha = float(boxes_3d.yaw[idx])
             yaw = alpha + math.atan2(center[0], center[2])
             alpha = normalize_angle(alpha)  # Networks predict allocentric angle alpha
             yaw = normalize_angle(yaw)
             cuboid['alpha'] = alpha
             cuboid['yaw'] = yaw
+            cuboid['corrective_factor'] = cf
             dic_out['cuboids'].append(cuboid)
     with open(output_path, 'w') as ff:
         json.dump(dic_out, ff)
