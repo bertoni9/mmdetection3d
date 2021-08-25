@@ -62,7 +62,7 @@ def main():
             generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
         # show the results
         if args.save:
-            cf = 1  # corrective factor for intrinsics
+            cf = 0.9  # corrective factor for intrinsics
             output_path = osp.join(args.out_dir, file_name + '.json')
             save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], cf, output_path)
         if args.predict and boxes_3d:
