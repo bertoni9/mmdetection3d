@@ -49,7 +49,7 @@ def save_json(boxes_3d, boxes_2d, categories, intrinsics, cf, output_path):
     print(f'Saved file {output_path}')
 
 
-def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
+def generate_txt(boxes_3d, boxes_2d, categories, out_dir, cf, filename):
 
     path_txt = osp.join(out_dir, osp.splitext(osp.basename(filename))[0] + '.txt')
     with open(path_txt, "w+") as ff:
@@ -61,6 +61,7 @@ def generate_txt(boxes_3d, boxes_2d, categories, out_dir, filename):
         yaws = alphas + torch.atan2(locs[:, 0], locs[:, 2])
         for idx, box in enumerate(boxes_2d):
             loc = locs[idx].tolist()
+            loc = [l * cf for l in loc]
             dim = dims[idx].tolist()
             hwl = [dim[1], dim[2], dim[0]]
             alpha = normalize_angle((alphas[idx]))  # KITTI Convention
@@ -176,7 +177,7 @@ def intrinsics_shift(bboxes3d, cf):
     if not bboxes3d:
         return torch.empty(0)
     centers = copy.deepcopy(bboxes3d.gravity_center)
-    centers[:, 0] *= cf
+    centers *= cf  # Scale locations to account for different intrinsics
     return centers
 
 

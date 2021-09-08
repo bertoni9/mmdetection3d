@@ -24,6 +24,8 @@ def main():
     parser.add_argument(
         '--save', action='store_true', help='save json files')
     parser.add_argument(
+        '--cf', type=float, default=1., help='corrective factor to scale annotations')
+    parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument('--glob', help='glob expression for input images (for many images)')
     parser.add_argument(
@@ -31,7 +33,7 @@ def main():
     parser.add_argument(
         '--out-dir', type=str, default='demo', help='dir to save results')
     parser.add_argument(
-        '--show', action='store_true', help='show online visuliaztion results')
+        '--show', action='store_true', help='show online visualization results')
     parser.add_argument(
         '--snapshot',
         action='store_true',
@@ -59,12 +61,11 @@ def main():
         boxes_3d, boxes_2d, categories = postprocess(data, result, score_thr=args.score_thr)
 
         if args.generate:
-            generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, img_filename)
+            generate_txt(boxes_3d, boxes_2d, categories, args.out_dir, args.cf, img_filename)
         # show the results
         if args.save:
-            cf = 0.9  # corrective factor for intrinsics
             output_path = osp.join(args.out_dir, file_name + '.json')
-            save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], cf, output_path)
+            save_json(boxes_3d, boxes_2d, categories, data['img_metas'][0][0]['cam_intrinsic'], args.cf, output_path)
         if args.predict and boxes_3d:
             show_multi_modality_result(
                 img,
